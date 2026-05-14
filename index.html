@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKR Compass — Planejamento Estratégico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --teal:#1D9E75;--tealD:#085041;--tealL:#E1F5EE;--tealM:#9FE1CB;
+    --amber:#EF9F27;--amberD:#633806;--amberL:#FAEEDA;
+    --red:#E24B4A;--redD:#791F1F;--redL:#FCEBEB;
+    --blue:#378ADD;--blueL:#E6F1FB;
+    --purple:#7F77DD;--purpleL:#EEEDFE;
+    --bg:#f5f5f0;--bgCard:#fff;--bgSec:#f0efea;
+    --txt:#1a1a1a;--txtSec:#6b6b68;--border:rgba(0,0,0,0.12);--borderMed:rgba(0,0,0,0.22);
+    --radius:8px;--radiusLg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#1a1a18;--bgCard:#242422;--bgSec:#2c2c2a;--txt:#f0efea;--txtSec:#888780;--border:rgba(255,255,255,0.1);--borderMed:rgba(255,255,255,0.2);}
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;}
+  input,select,button{font-family:inherit;font-size:inherit;}
+  input[type=text],input[type=number],select{
+    border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px;font-size:13px;
+    background:var(--bgCard);color:var(--txt);outline:none;transition:border .15s;
+  }
+  input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--teal);}
+  input[type=range]{accent-color:var(--teal);cursor:pointer;}
+  input[type=checkbox]{accent-color:var(--teal);}
+
+  /* Layout */
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .header{background:var(--bgCard);border-bottom:1px solid var(--border);padding:14px 24px;position:sticky;top:0;z-index:100;}
+  .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .logo{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .logo-icon{width:30px;height:30px;border-radius:7px;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-title{font-size:15px;font-weight:600;color:var(--txt);}
+  .logo-sub{font-size:11px;color:var(--txtSec);}
+  .quarter-sel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .quarter-sel span{font-size:12px;color:var(--txtSec);}
+  .q-btn{font-size:12px;padding:4px 10px;border-radius:var(--radius);cursor:pointer;background:transparent;color:var(--txtSec);border:1px solid var(--border);transition:all .15s;}
+  .q-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:500;}
+  .progress-ring{display:flex;align-items:center;gap:8px;background:var(--bgSec);border-radius:var(--radius);padding:6px 12px;}
+  .ring-labels p{font-size:11px;color:var(--txtSec);}
+  .ring-labels b{font-size:11px;font-weight:500;color:var(--txt);}
+
+  /* Tabs */
+  .tabbar{background:var(--bgCard);border-bottom:1px solid var(--border);padding:0 24px;}
+  .tabbar-inner{max-width:1100px;margin:0 auto;display:flex;}
+  .tab-btn{padding:11px 18px;font-size:13px;cursor:pointer;background:transparent;border:none;color:var(--txtSec);border-bottom:2px solid transparent;transition:all .15s;font-weight:400;}
+  .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500;}
+
+  /* Content */
+  .content{max-width:1100px;margin:0 auto;padding:20px 24px;flex:1;}
+
+  /* Cards */
+  .card{background:var(--bgCard);border:1px solid var(--border);border-radius:var(--radiusLg);padding:16px 20px;}
+  .met-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+  .met-card{background:var(--bgSec);border-radius:var(--radius);padding:14px 16px;flex:1;min-width:140px;}
+  .met-label{font-size:12px;color:var(--txtSec);margin-bottom:4px;}
+  .met-val{font-size:24px;font-weight:500;line-height:1.1;}
+  .met-sub{font-size:12px;color:var(--txtSec);margin-top:4px;}
+
+  /* Progress bar */
+  .pbar-wrap{background:var(--bgSec);border-radius:99px;overflow:hidden;}
+  .pbar-fill{height:100%;border-radius:99px;transition:width .4s;}
+
+  /* Badge */
+  .badge{font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;white-space:nowrap;}
+
+  /* Buttons */
+  .btn{font-size:12px;font-weight:500;padding:5px 12px;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--txt);transition:all .15s;white-space:nowrap;}
+  .btn:hover{background:var(--bgSec);}
+  .btn-teal{background:var(--tealL);color:var(--tealD);border-color:var(--teal);}
+  .btn-blue{background:var(--blueL);color:var(--blue);border-color:var(--blue);}
+  .btn-danger{background:var(--redL);color:var(--redD);border-color:var(--red);}
+  .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+  /* Section heading */
+  .sec-hdr{font-size:13px;font-weight:500;color:var(--txtSec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;}
+
+  /* OKR */
+  .okr-section{margin-bottom:20px;}
+  .okr-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bgSec);border-radius:var(--radiusLg);border:1px solid var(--border);cursor:pointer;transition:background .15s;user-select:none;}
+  .okr-head:hover{background:var(--bgSec);}
+  .okr-bar{width:4px;height:40px;border-radius:99px;flex-shrink:0;}
+  .okr-body{flex:1;min-width:0;}
+  .okr-title{font-size:15px;font-weight:500;color:var(--txt);}
+  .okr-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+  .okr-chevron{font-size:16px;color:var(--txtSec);}
+  .okr-krs{padding-left:16px;margin-top:8px;}
+  .okr-krs.collapsed{display:none;}
+
+  /* KR */
+  .kr-card{margin-bottom:10px;}
+  .kr-name{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:8px;}
+  .kr-vals{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .kr-pct{font-size:13px;font-weight:500;min-width:36px;text-align:right;}
+  .kr-range{font-size:12px;color:var(--txtSec);white-space:nowrap;}
+  .kr-pa-hdr{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .kr-pa-label{font-size:11px;font-weight:500;color:var(--txtSec);letter-spacing:.05em;text-transform:uppercase;}
+  .kr-pa-avg{font-size:11px;color:var(--txtSec);}
+  .hr{flex:1;height:1px;background:var(--border);}
+
+  /* PA */
+  .pa-row{padding:10px 0;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+  .pa-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pa-dot{width:6px;height:6px;border-radius:99px;flex-shrink:0;}
+  .pa-name{font-size:13px;color:var(--txt);flex:1;}
+  .pa-owner{font-size:11px;color:var(--txtSec);}
+  .pa-bottom{display:flex;align-items:center;gap:8px;}
+
+  /* Edit mode */
+  .edit-notice{background:var(--amberL);border:1px solid var(--amber);border-radius:var(--radius);padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--amberD);}
+
+  /* KPI grid */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+  .kpi-card{position:relative;}
+  .kpi-cat{font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--purpleL);color:var(--purple);}
+  .kpi-name{font-size:15px;font-weight:500;margin:8px 0 2px;}
+  .kpi-full{font-size:11px;color:var(--txtSec);margin-bottom:10px;}
+  .kpi-val-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+  .kpi-val{font-size:26px;font-weight:500;line-height:1;}
+  .kpi-of{font-size:12px;color:var(--txtSec);}
+  .kpi-pbar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .sparkline-wrap{height:55px;margin-top:4px;}
+  .spark-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--txtSec);margin-top:2px;}
+
+  /* Dashboard charts */
+  .chart-wrap{position:relative;width:100%;overflow-x:auto;}
+  .chart-legend{display:flex;gap:16px;font-size:12px;color:var(--txtSec);margin-top:8px;flex-wrap:wrap;}
+  .leg-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;}
+
+  /* Footer */
+  footer{text-align:center;padding:14px;font-size:11px;color:var(--txtSec);border-top:1px solid var(--border);margin-top:20px;}
+
+  /* Tooltip */
+  .chart-tooltip{position:fixed;background:var(--bgCard);border:1px solid var(--borderMed);border-radius:var(--radius);padding:8px 12px;font-size:12px;pointer-events:none;z-index:999;display:none;max-width:200px;}
+
+  /* Util */
+  .flex{display:flex;}.gap8{gap:8px;}.gap12{gap:12px;}.wrap{flex-wrap:wrap;}.ac{align-items:center;}.jb{justify-content:space-between;}.mb8{margin-bottom:8px;}.mb14{margin-bottom:14px;}.mb20{margin-bottom:20px;}.mt8{margin-top:8px;}.f1{flex:1;min-width:0;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="white" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="3" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-title">OKR Compass</div>
+          <div class="logo-sub">Planejamento Estratégico Trimestral</div>
+        </div>
+      </div>
+      <div class="quarter-sel">
+        <span>Trimestre:</span>
+        <div id="quarter-btns" class="flex gap8"></div>
+      </div>
+      <div class="progress-ring">
+        <div style="position:relative;width:34px;height:34px;flex-shrink:0;">
+          <svg id="ring-svg" viewBox="0 0 34 34" width="34" height="34" style="transform:rotate(-90deg)">
+            <circle cx="17" cy="17" r="13" fill="none" stroke="var(--border)" stroke-width="3"/>
+            <circle id="ring-arc" cx="17" cy="17" r="13" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 81.7"/>
+          </svg>
+          <span id="ring-num" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;font-weight:500;"></span>
+        </div>
+        <div class="ring-labels">
+          <p>OKRs</p>
+          <b id="ring-label">0% geral</b>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-tab="dashboard">Visão Geral</button>
+      <button class="tab-btn" data-tab="planning">OKRs &amp; PAs</button>
+      <button class="tab-btn" data-tab="kpis">KPIs</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="tab-dashboard"></div>
+    <div id="tab-planning" style="display:none;"></div>
+    <div id="tab-kpis" style="display:none;"></div>
+  </div>
+
+  <footer id="footer-bar"></footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA & HELPERS
+// ═══════════════════════════════════════════════════════════════
+const C = {
+  teal:"#1D9E75",tealD:"#085041",tealL:"#E1F5EE",tealM:"#9FE1CB",
+  amber:"#EF9F27",amberD:"#633806",amberL:"#FAEEDA",
+  red:"#E24B4A",redD:"#791F1F",redL:"#FCEBEB",
+  blue:"#378ADD",blueL:"#E6F1FB",
+  purple:"#7F77DD",purpleL:"#EEEDFE",
+};
+const ST = {
+  on_track:{label:"No Prazo",c:C.teal,d:C.tealD,bg:C.tealL},
+  at_risk:{label:"Em Risco",c:C.amber,d:C.amberD,bg:C.amberL},
+  behind:{label:"Atrasado",c:C.red,d:C.redD,bg:C.redL},
+};
+let _uid=9000; const uid=()=>`${++_uid}`;
+const QUARTERS=["Q1 2026","Q2 2026","Q3 2026","Q4 2026"];
+
+function fmtVal(v,f){
+  if(f==="currency"){
+    if(v>=1e6)return`R$ ${(v/1e6).toFixed(2)}M`;
+    if(v>=1e3)return`R$ ${(v/1e3).toFixed(0)}K`;
+    return`R$ ${v}`;
+  }
+  if(f==="percent")return`${v}%`;
+  return String(v);
+}
+function getPct(cur,tgt,inv){
+  if(!tgt)return 0;
+  const r=inv?(tgt/cur)*100:(cur/tgt)*100;
+  return Math.min(100,Math.max(0,Math.round(r)));
+}
+function scColor(p){return p>=70?C.teal:p>=40?C.amber:C.red;}
+
+// ═══════════════════════════════════════════════════════════════
+// INITIAL DATA
+// ═══════════════════════════════════════════════════════════════
+const D0={
+  quarter:"Q1 2026",
+  okrs:[
+    {id:"o1",obj:"Crescer receita e expandir o mercado",krs:[
+      {id:"k1",name:"Receita recorrente de R$2M/mês",tgt:2000000,cur:1360000,fmt:"currency",inv:false,pas:[
+        {id:"p1",name:"Campanha de aquisição digital",prog:80,owner:"Marketing",st:"on_track"},
+        {id:"p2",name:"Expansão para novos estados",prog:55,owner:"Comercial",st:"at_risk"},
+        {id:"p3",name:"Programa de indicações",prog:70,owner:"Growth",st:"on_track"},
+      ]},
+      {id:"k2",name:"500 novos clientes no trimestre",tgt:500,cur:312,fmt:"number",inv:false,pas:[
+        {id:"p4",name:"Estruturar time de outbound",prog:65,owner:"Vendas",st:"on_track"},
+        {id:"p5",name:"Parceria com influenciadores",prog:45,owner:"Marketing",st:"at_risk"},
+      ]},
+    ]},
+    {id:"o2",obj:"Elevar a excelência operacional e satisfação",krs:[
+      {id:"k3",name:"Churn abaixo de 3% ao mês",tgt:3,cur:4.2,fmt:"percent",inv:true,pas:[
+        {id:"p6",name:"Redesenho do onboarding",prog:75,owner:"Produto",st:"on_track"},
+        {id:"p7",name:"CS proativo com alertas",prog:50,owner:"CS",st:"at_risk"},
+      ]},
+      {id:"k4",name:"NPS acima de 70 pontos",tgt:70,cur:58,fmt:"number",inv:false,pas:[
+        {id:"p8",name:"Programa Voz do Cliente",prog:40,owner:"CX",st:"behind"},
+        {id:"p9",name:"Treinamento de suporte",prog:55,owner:"Operações",st:"on_track"},
+      ]},
+    ]},
+  ],
+  kpis:[
+    {id:"kpi1",name:"MRR",full:"Receita Recorrente Mensal",val:1360000,tgt:2000000,fmt:"currency",cat:"Financeiro",inv:false,trend:[980000,1050000,1120000,1200000,1280000,1360000]},
+    {id:"kpi2",name:"Churn Rate",full:"Taxa de Churn Mensal",val:4.2,tgt:3.0,fmt:"percent",cat:"Retenção",inv:true,trend:[5.8,5.5,5.1,4.9,4.5,4.2]},
+    {id:"kpi3",name:"NPS",full:"Net Promoter Score",val:58,tgt:70,fmt:"number",cat:"Satisfação",inv:false,trend:[45,48,51,53,56,58]},
+    {id:"kpi4",name:"CAC",full:"Custo de Aquisição",val:850,tgt:600,fmt:"currency",cat:"Eficiência",inv:true,trend:[1200,1100,1000,950,900,850]},
+    {id:"kpi5",name:"LTV",full:"Lifetime Value",val:8500,tgt:12000,fmt:"currency",cat:"Financeiro",inv:false,trend:[6200,6800,7200,7600,8000,8500]},
+    {id:"kpi6",name:"Novos Clientes",full:"Novos Clientes no Trimestre",val:312,tgt:500,fmt:"number",cat:"Crescimento",inv:false,trend:[180,210,240,265,290,312]},
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let state = JSON.parse(JSON.stringify(D0));
+try{
+  const saved = localStorage.getItem("okr_compass");
+  if(saved){const d=JSON.parse(saved);if(d.okrs&&d.kpis)state=d;}
+}catch(e){}
+
+let currentTab="dashboard";
+let editMode=false;
+let sparkCharts={};
+let dashCharts={};
+let saveTimer=null;
+
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{localStorage.setItem("okr_compass",JSON.stringify(state));}catch(e){}
+  },600);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPUTED
+// ═══════════════════════════════════════════════════════════════
+function allKrs(){return state.okrs.flatMap(o=>o.krs.map(k=>({...k,okrId:o.id,okrLabel:o.obj})));}
+function allPas(){return allKrs().flatMap(k=>k.pas.map(p=>({...p,krId:k.id,krName:k.name})));}
+function avgOkrPct(){
+  if(!state.okrs.length)return 0;
+  const s=state.okrs.reduce((acc,o)=>{
+    const avg=o.krs.length?o.krs.reduce((ss,k)=>ss+getPct(k.cur,k.tgt,k.inv),0)/o.krs.length:0;
+    return acc+avg;
+  },0);
+  return Math.round(s/state.okrs.length);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEADER
+// ═══════════════════════════════════════════════════════════════
+function renderHeader(){
+  const qb = document.getElementById("quarter-btns");
+  qb.innerHTML = QUARTERS.map(q=>
+    `<button class="q-btn${state.quarter===q?" active":""}" onclick="setQuarter('${q}')">${q}</button>`
+  ).join("");
+
+  const avg = avgOkrPct();
+  const circ = 81.7;
+  const arc = (avg/100)*circ;
+  document.getElementById("ring-arc").setAttribute("stroke-dasharray",`${arc} ${circ}`);
+  document.getElementById("ring-arc").setAttribute("stroke",scColor(avg));
+  document.getElementById("ring-num").textContent=avg;
+  document.getElementById("ring-num").style.color=scColor(avg);
+  document.getElementById("ring-label").textContent=`${avg}% geral`;
+
+  // Footer
+  const krs=allKrs(), pas=allPas();
+  document.getElementById("footer-bar").textContent=
+    `${state.quarter} · ${state.okrs.length} OKRs · ${krs.length} KRs · ${pas.length} PAs · ${state.kpis.length} KPIs · dados salvos automaticamente`;
+}
+
+function setQuarter(q){state.quarter=q;save();renderHeader();render();}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  ["dashboard","planning","kpis"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display=t===tab?"":"none";
+  });
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
+// ═══════════════════════════════════════════════════════════════
+function render(){
+  renderHeader();
+  if(currentTab==="dashboard") renderDashboard();
+  if(currentTab==="planning")  renderPlanning();
+  if(currentTab==="kpis")      renderKpis();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard(){
+  const el=document.getElementById("tab-dashboard");
+  const krs=allKrs(), pas=allPas();
+  const onTrack=pas.filter(p=>p.st==="on_track").length;
+  const atRisk=pas.filter(p=>p.st==="at_risk").length;
+  const behind=pas.filter(p=>p.st==="behind").length;
+  const kpiOk=state.kpis.filter(k=>getPct(k.val,k.tgt,k.inv)>=70).length;
+  const avg=avgOkrPct();
+
+  // Cascade data
+  const cascade=state.okrs.flatMap(o=>o.krs.map(k=>({
+    kr:k.name.length>22?k.name.slice(0,22)+"…":k.name,
+    krPct:getPct(k.cur,k.tgt,k.inv),
+    avgPa:k.pas.length?Math.round(k.pas.reduce((s,p)=>s+p.prog,0)/k.pas.length):0
+  })));
+
+  // PA data
+  const paData=pas.map(p=>({
+    name:p.name.length>26?p.name.slice(0,26)+"…":p.name,
+    prog:p.prog,
+    color:ST[p.st]?.c||C.teal
+  }));
+
+  el.innerHTML=`
+  <div class="met-grid">
+    <div class="met-card"><div class="met-label">Progresso Geral OKRs</div><div class="met-val" style="color:${scColor(avg)}">${avg}%</div><div class="met-sub">${state.okrs.length} objetivos ativos</div></div>
+    <div class="met-card"><div class="met-label">PAs No Prazo</div><div class="met-val" style="color:${C.teal}">${onTrack}</div><div class="met-sub">${atRisk} em risco · ${behind} atrasados</div></div>
+    <div class="met-card"><div class="met-label">KPIs Atingidos</div><div class="met-val" style="color:${C.blue}">${kpiOk}/${state.kpis.length}</div><div class="met-sub">acima de 70% da meta</div></div>
+    <div class="met-card"><div class="met-label">Total de PAs</div><div class="met-val">${pas.length}</div><div class="met-sub">em ${krs.length} Key Results</div></div>
+  </div>
+
+  <div class="card mb20">
+    <div class="sec-hdr">Cascata de Contribuição — PA → KR</div>
+    <p style="font-size:12px;color:var(--txtSec);margin-bottom:14px;">Comparação entre progresso médio dos PAs e realização do KR</p>
+    <div class="chart-wrap">
+      <div style="position:relative;width:100%;height:${cascade.length*52+70}px;">
+        <canvas id="chart-cascade" role="img" aria-label="Gráfico de cascata PA versus KR"></canvas>
+      </div>
+    </div>
+    <div class="chart-legend">
+      <span><span class="leg-dot" style="background:${C.tealM}"></span>Média PAs</span>
+      <span><span class="leg-dot" style="background:${C.teal}"></span>Realização KR</span>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="sec-hdr">Progresso por OKR</div>
+    <div id="okr-progress-list"></div>
+  </div>
+
+  <div class="card mb20">
+    <div class="sec-hdr">Desempenho de todos os PAs</div>
+    <div class="chart-wrap">
+      <div style="position:relative;width:100%;height:${paData.length*42+70}px;">
+        <canvas id="chart-pas" role="img" aria-label="Gráfico de progresso dos planos de ação"></canvas>
+      </div>
+    </div>
+  </div>
+  `;
+
+  // OKR progress list
+  const opl=document.getElementById("okr-progress-list");
+  state.okrs.forEach(o=>{
+    const avg=o.krs.length?Math.round(o.krs.reduce((s,k)=>s+getPct(k.cur,k.tgt,k.inv),0)/o.krs.length):0;
+    const div=document.createElement("div");
+    div.style.marginBottom="16px";
+    div.innerHTML=`
+      <div class="flex jb ac mb8">
+        <span style="font-size:13px;">${o.obj}</span>
+        <span style="font-size:13px;font-weight:500;color:${scColor(avg)};margin-left:8px;">${avg}%</span>
+      </div>
+      <div class="pbar-wrap" style="height:10px;margin-bottom:6px;">
+        <div class="pbar-fill" style="width:${avg}%;background:${scColor(avg)};height:100%;"></div>
+      </div>
+      <div class="flex gap8 wrap">
+        ${o.krs.map(k=>{const kp=getPct(k.cur,k.tgt,k.inv);return`
+          <span style="font-size:11px;color:var(--txtSec);display:flex;align-items:center;gap:3px;">
+            <span style="width:6px;height:6px;border-radius:99px;background:${scColor(kp)};display:inline-block;flex-shrink:0;"></span>
+            ${k.name.slice(0,24)}: <b style="color:${scColor(kp)}">${kp}%</b>
+          </span>`}).join("")}
+      </div>
+    `;
+    opl.appendChild(div);
+  });
+
+  // Cascade chart
+  requestAnimationFrame(()=>{
+    destroyChart("cascade");
+    const ctx=document.getElementById("chart-cascade");
+    if(ctx&&cascade.length){
+      dashCharts["cascade"]=new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:cascade.map(d=>d.kr),
+          datasets:[
+            {label:"Média PAs",data:cascade.map(d=>d.avgPa),backgroundColor:C.tealM,borderRadius:4,barPercentage:0.5},
+            {label:"Realização KR",data:cascade.map(d=>d.krPct),backgroundColor:C.teal,borderRadius:4,barPercentage:0.5},
+          ]
+        },
+        options:{
+          indexAxis:"y",responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x}%`}}},
+          scales:{
+            x:{min:0,max:100,ticks:{callback:v=>`${v}%`,font:{size:11}},grid:{color:"rgba(0,0,0,0.06)"}},
+            y:{ticks:{font:{size:11}},grid:{display:false}}
+          }
+        }
+      });
+    }
+
+    // PA chart
+    destroyChart("pas");
+    const ctx2=document.getElementById("chart-pas");
+    if(ctx2&&paData.length){
+      dashCharts["pas"]=new Chart(ctx2,{
+        type:"bar",
+        data:{
+          labels:paData.map(d=>d.name),
+          datasets:[{label:"Progresso",data:paData.map(d=>d.prog),backgroundColor:paData.map(d=>d.color),borderRadius:4,barPercentage:0.55}]
+        },
+        options:{
+          indexAxis:"y",responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Progresso: ${ctx.parsed.x}%`}}},
+          scales:{
+            x:{min:0,max:100,ticks:{callback:v=>`${v}%`,font:{size:11}},grid:{color:"rgba(0,0,0,0.06)"}},
+            y:{ticks:{font:{size:11}},grid:{display:false}}
+          }
+        }
+      });
+    }
+  });
+}
+
+function destroyChart(id){
+  if(dashCharts[id]){dashCharts[id].destroy();delete dashCharts[id];}
+  if(sparkCharts[id]){sparkCharts[id].destroy();delete sparkCharts[id];}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PLANNING
+// ═══════════════════════════════════════════════════════════════
+function renderPlanning(){
+  const el=document.getElementById("tab-planning");
+  let html=`
+  <div class="flex jb ac mb14 wrap gap8">
+    <div class="sec-hdr" style="margin:0">Hierarquia OKR · KR · PA</div>
+    <div class="flex gap8">
+      <button class="btn ${editMode?"btn-primary":""}" onclick="toggleEdit()">${editMode?"✓ Salvar Edições":"✎ Editar Planejamento"}</button>
+      ${editMode?`<button class="btn btn-blue" onclick="addOkr()">+ Novo OKR</button>`:""}
+    </div>
+  </div>
+  ${editMode?`<div class="edit-notice">Modo de edição ativo — modifique objetivos, KRs e PAs diretamente. Clique em "Salvar Edições" quando terminar.</div>`:""}
+  `;
+
+  if(!state.okrs.length){
+    html+=`<div style="text-align:center;padding:3rem;color:var(--txtSec);">Nenhum OKR cadastrado. Clique em "Editar Planejamento" para começar.</div>`;
+  } else {
+    state.okrs.forEach(o=>{
+      html+=renderOkrSection(o);
+    });
+  }
+
+  el.innerHTML=html;
+  // Bind toggle chevrons
+  document.querySelectorAll(".okr-toggle").forEach(btn=>{
+    btn.addEventListener("click",function(e){
+      if(editMode)return;
+      const id=this.dataset.id;
+      const body=document.getElementById("okr-body-"+id);
+      const ch=document.getElementById("okr-ch-"+id);
+      const open=body.classList.toggle("collapsed");
+      ch.textContent=open?"▸":"▾";
+    });
+  });
+}
+
+function renderOkrSection(o){
+  const avg=o.krs.length?Math.round(o.krs.reduce((s,k)=>s+getPct(k.cur,k.tgt,k.inv),0)/o.krs.length):0;
+  const totalPas=o.krs.reduce((s,k)=>s+k.pas.length,0);
+  return `
+  <div class="okr-section">
+    <div class="okr-head okr-toggle" data-id="${o.id}">
+      <div class="okr-bar" style="background:${scColor(avg)};"></div>
+      <div class="okr-body">
+        ${editMode
+          ?`<input type="text" value="${esc(o.obj)}" onchange="updateOkrObj('${o.id}',this.value)" style="width:100%;font-size:15px;font-weight:500;">`
+          :`<div class="okr-title">${esc(o.obj)}</div>`
+        }
+        <div class="okr-meta">
+          <div class="pbar-wrap" style="width:160px;height:6px;"><div class="pbar-fill" style="width:${avg}%;background:${scColor(avg)};height:100%;"></div></div>
+          <span style="font-size:12px;font-weight:500;color:${scColor(avg)}">${avg}%</span>
+          <span style="font-size:11px;color:var(--txtSec)">${o.krs.length} KRs · ${totalPas} PAs</span>
+        </div>
+      </div>
+      ${editMode
+        ?`<button class="btn btn-danger" onclick="deleteOkr('${o.id}');event.stopPropagation()">Excluir OKR</button>`
+        :`<span class="okr-chevron" id="okr-ch-${o.id}">▾</span>`
+      }
+    </div>
+    <div class="okr-krs" id="okr-body-${o.id}">
+      ${o.krs.map(k=>renderKrCard(o.id,k)).join("")}
+      ${editMode?`<button class="btn btn-blue" style="margin-bottom:8px;" onclick="addKr('${o.id}')">+ Adicionar Key Result</button>`:""}
+    </div>
+  </div>`;
+}
+
+function renderKrCard(oid,k){
+  const p=getPct(k.cur,k.tgt,k.inv);
+  const avgPa=k.pas.length?Math.round(k.pas.reduce((s,p)=>s+p.prog,0)/k.pas.length):0;
+  return `
+  <div class="card kr-card">
+    <div class="flex jb ac mb8 wrap gap8">
+      ${editMode
+        ?`<input type="text" value="${esc(k.name)}" onchange="updateKrField('${oid}','${k.id}','name',this.value)" style="flex:1;font-size:14px;font-weight:500;">`
+        :`<div class="kr-name" style="margin:0;flex:1">${esc(k.name)}</div>`
+      }
+      ${editMode?`<button class="btn btn-danger" onclick="deleteKr('${oid}','${k.id}')">Remover KR</button>`:""}
+    </div>
+    ${editMode?`
+    <div class="flex gap8 wrap mb8" style="align-items:flex-end;">
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Valor Atual</div>
+        <input type="number" value="${k.cur}" onchange="updateKrField('${oid}','${k.id}','cur',+this.value)" style="width:110px;">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Meta</div>
+        <input type="number" value="${k.tgt}" onchange="updateKrField('${oid}','${k.id}','tgt',+this.value)" style="width:110px;">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Formato</div>
+        <select onchange="updateKrField('${oid}','${k.id}','fmt',this.value)">
+          <option value="number"${k.fmt==="number"?" selected":""}>Número</option>
+          <option value="currency"${k.fmt==="currency"?" selected":""}>Moeda (R$)</option>
+          <option value="percent"${k.fmt==="percent"?" selected":""}>Porcentagem</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--txtSec);cursor:pointer;">
+        <input type="checkbox" ${k.inv?"checked":""} onchange="updateKrField('${oid}','${k.id}','inv',this.checked)">
+        Inverso (menor = melhor)
+      </label>
+    </div>`:""}
+    <div class="kr-vals">
+      <div class="pbar-wrap flex-1 f1" style="height:10px;"><div class="pbar-fill" style="width:${p}%;background:${scColor(p)};height:100%;"></div></div>
+      <span class="kr-pct" style="color:${scColor(p)}">${p}%</span>
+      <span class="kr-range">${fmtVal(k.cur,k.fmt)} / ${fmtVal(k.tgt,k.fmt)}</span>
+    </div>
+    <div class="kr-pa-hdr">
+      <span class="kr-pa-label">Planos de Ação (${k.pas.length})</span>
+      <div class="hr"></div>
+      <span class="kr-pa-avg">Média: <b style="color:${scColor(avgPa)}">${avgPa}%</b></span>
+    </div>
+    ${k.pas.map(pa=>renderPaRow(oid,k.id,pa)).join("")}
+    ${editMode?`<button class="btn btn-teal" style="margin-top:8px;" onclick="addPa('${oid}','${k.id}')">+ Adicionar PA</button>`:""}
+  </div>`;
+}
+
+function renderPaRow(oid,kid,pa){
+  const cfg=ST[pa.st]||ST.on_track;
+  return `
+  <div class="pa-row">
+    <div class="pa-top">
+      <span class="pa-dot" style="background:${cfg.c};"></span>
+      ${editMode
+        ?`<input type="text" value="${esc(pa.name)}" onchange="updatePaField('${oid}','${kid}','${pa.id}','name',this.value)" style="flex:1;min-width:120px;">`
+        :`<span class="pa-name">${esc(pa.name)}</span>`
+      }
+      ${editMode
+        ?`<select onchange="updatePaField('${oid}','${kid}','${pa.id}','st',this.value)">
+            <option value="on_track"${pa.st==="on_track"?" selected":""}>No Prazo</option>
+            <option value="at_risk"${pa.st==="at_risk"?" selected":""}>Em Risco</option>
+            <option value="behind"${pa.st==="behind"?" selected":""}>Atrasado</option>
+          </select>
+          <input type="text" value="${esc(pa.owner)}" placeholder="Responsável" onchange="updatePaField('${oid}','${kid}','${pa.id}','owner',this.value)" style="width:90px;">
+          <button class="btn btn-danger" onclick="deletePa('${oid}','${kid}','${pa.id}')">✕</button>`
+        :`<span class="badge" style="background:${cfg.bg};color:${cfg.d}">${cfg.label}</span>
+          <span class="pa-owner">${esc(pa.owner)}</span>`
+      }
+    </div>
+    <div class="pa-bottom">
+      <div class="pbar-wrap f1" style="height:6px;"><div class="pbar-fill" style="width:${pa.prog}%;background:${scColor(pa.prog)};height:100%;"></div></div>
+      ${editMode?`<input type="range" min="0" max="100" step="1" value="${pa.prog}" oninput="updatePaField('${oid}','${kid}','${pa.id}','prog',+this.value);this.nextElementSibling.textContent=this.value+'%'" style="width:80px;">`:""}
+      <span style="font-size:12px;font-weight:500;color:${scColor(pa.prog)};min-width:34px;text-align:right;">${pa.prog}%</span>
+    </div>
+  </div>`;
+}
+
+// Planning mutations
+function toggleEdit(){editMode=!editMode;renderPlanning();}
+function addOkr(){state.okrs.push({id:uid(),obj:"Novo Objetivo",krs:[]});save();renderPlanning();}
+function deleteOkr(id){state.okrs=state.okrs.filter(o=>o.id!==id);save();renderPlanning();}
+function updateOkrObj(oid,v){const o=state.okrs.find(x=>x.id===oid);if(o)o.obj=v;save();}
+function addKr(oid){const o=state.okrs.find(x=>x.id===oid);if(o)o.krs.push({id:uid(),name:"Novo Key Result",tgt:100,cur:0,fmt:"number",inv:false,pas:[]});save();renderPlanning();}
+function deleteKr(oid,kid){const o=state.okrs.find(x=>x.id===oid);if(o)o.krs=o.krs.filter(k=>k.id!==kid);save();renderPlanning();}
+function updateKrField(oid,kid,field,val){const o=state.okrs.find(x=>x.id===oid);if(!o)return;const k=o.krs.find(x=>x.id===kid);if(k)k[field]=val;save();if(field!=="name")renderPlanning();}
+function addPa(oid,kid){const o=state.okrs.find(x=>x.id===oid);if(!o)return;const k=o.krs.find(x=>x.id===kid);if(k)k.pas.push({id:uid(),name:"Nova ação",prog:0,owner:"",st:"on_track"});save();renderPlanning();}
+function deletePa(oid,kid,pid){const o=state.okrs.find(x=>x.id===oid);if(!o)return;const k=o.krs.find(x=>x.id===kid);if(k)k.pas=k.pas.filter(p=>p.id!==pid);save();renderPlanning();}
+function updatePaField(oid,kid,pid,field,val){
+  const o=state.okrs.find(x=>x.id===oid);if(!o)return;
+  const k=o.krs.find(x=>x.id===kid);if(!k)return;
+  const p=k.pas.find(x=>x.id===pid);if(p)p[field]=val;
+  save();
+  if(field==="prog"){renderHeader();}
+  if(field==="st"||field==="owner")renderPlanning();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════════════
+function renderKpis(){
+  const el=document.getElementById("tab-kpis");
+  const months=["Jan","Fev","Mar","Abr","Mai","Jun"];
+
+  el.innerHTML=`
+  <div class="flex jb ac mb14 wrap gap8">
+    <div class="sec-hdr" style="margin:0">Indicadores-chave de Desempenho</div>
+    <button class="btn btn-blue" onclick="addKpi()">+ Novo KPI</button>
+  </div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+  `;
+
+  const grid=document.getElementById("kpi-grid");
+  state.kpis.forEach(k=>{
+    const p=getPct(k.val,k.tgt,k.inv);
+    const div=document.createElement("div");
+    div.className="card kpi-card";
+    div.id="kpi-"+k.id;
+    div.innerHTML=`
+      <div class="flex jb ac mb8">
+        <span class="kpi-cat">${esc(k.cat)}</span>
+        <div class="flex gap8">
+          <button class="btn" onclick="toggleKpiEdit('${k.id}')">Editar</button>
+          <button class="btn btn-danger" onclick="deleteKpi('${k.id}')">✕</button>
+        </div>
+      </div>
+      <div id="kpi-view-${k.id}">
+        <div class="kpi-name">${esc(k.name)}</div>
+        <div class="kpi-full">${esc(k.full)}</div>
+        <div class="kpi-val-row">
+          <span class="kpi-val" style="color:${scColor(p)}">${fmtVal(k.val,k.fmt)}</span>
+          <span class="kpi-of">de ${fmtVal(k.tgt,k.fmt)}</span>
+        </div>
+        <div class="kpi-pbar-row">
+          <div class="pbar-wrap f1" style="height:7px;"><div class="pbar-fill" style="width:${p}%;background:${scColor(p)};height:100%;"></div></div>
+          <span style="font-size:12px;font-weight:500;color:${scColor(p)};min-width:34px;text-align:right;">${p}%</span>
+        </div>
+      </div>
+      <div id="kpi-edit-${k.id}" style="display:none;margin-bottom:10px;">
+        <div class="flex gap8 wrap" style="margin-bottom:8px;">
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Nome</div>
+            <input type="text" value="${esc(k.name)}" onchange="updateKpi('${k.id}','name',this.value)" style="width:100%">
+          </div>
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Descrição</div>
+            <input type="text" value="${esc(k.full)}" onchange="updateKpi('${k.id}','full',this.value)" style="width:100%">
+          </div>
+        </div>
+        <div class="flex gap8 wrap" style="margin-bottom:8px;align-items:flex-end;">
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Valor Atual</div>
+            <input type="number" value="${k.val}" onchange="updateKpi('${k.id}','val',+this.value)" style="width:100px;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Meta</div>
+            <input type="number" value="${k.tgt}" onchange="updateKpi('${k.id}','tgt',+this.value)" style="width:100px;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Formato</div>
+            <select onchange="updateKpi('${k.id}','fmt',this.value)">
+              <option value="number"${k.fmt==="number"?" selected":""}>Número</option>
+              <option value="currency"${k.fmt==="currency"?" selected":""}>Moeda</option>
+              <option value="percent"${k.fmt==="percent"?" selected":""}>%</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Categoria</div>
+            <input type="text" value="${esc(k.cat)}" onchange="updateKpi('${k.id}','cat',this.value)" style="width:90px;">
+          </div>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txtSec);cursor:pointer;">
+            <input type="checkbox" ${k.inv?"checked":""} onchange="updateKpi('${k.id}','inv',this.checked)">
+            Inverso
+          </label>
+        </div>
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="spark-${k.id}" role="img" aria-label="Tendência ${esc(k.name)}"></canvas>
+      </div>
+      <div class="spark-labels"><span>Jan</span><span>Jun</span></div>
+    `;
+    grid.appendChild(div);
+
+    // Draw sparkline
+    requestAnimationFrame(()=>{
+      const ctx=document.getElementById("spark-"+k.id);
+      if(!ctx)return;
+      if(sparkCharts[k.id]){sparkCharts[k.id].destroy();}
+      sparkCharts[k.id]=new Chart(ctx,{
+        type:"line",
+        data:{
+          labels:months,
+          datasets:[{data:k.trend,borderColor:scColor(p),borderWidth:2,pointRadius:0,tension:0.3,fill:false}]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{enabled:false}},
+          scales:{x:{display:false},y:{display:false}}
+        }
+      });
+    });
+  });
+}
+
+function toggleKpiEdit(id){
+  const view=document.getElementById("kpi-view-"+id);
+  const edit=document.getElementById("kpi-edit-"+id);
+  const isOpen=edit.style.display==="none";
+  edit.style.display=isOpen?"block":"none";
+  view.style.display=isOpen?"none":"block";
+}
+function updateKpi(id,field,val){
+  const k=state.kpis.find(x=>x.id===id);
+  if(k){k[field]=val;save();}
+}
+function addKpi(){
+  state.kpis.push({id:uid(),name:"Novo KPI",full:"",val:0,tgt:100,fmt:"number",cat:"Outros",inv:false,trend:[0,0,0,0,0,0]});
+  save();renderKpis();
+}
+function deleteKpi(id){
+  if(sparkCharts[id]){sparkCharts[id].destroy();delete sparkCharts[id];}
+  state.kpis=state.kpis.filter(k=>k.id!==id);
+  save();renderKpis();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function esc(s){
+  if(s==null)return"";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll(".tab-btn").forEach(b=>{
+  b.addEventListener("click",()=>switchTab(b.dataset.tab));
+});
+
+render();
+</script>
+</body>
+</html>
