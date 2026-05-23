@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKR Compass — Planejamento Estratégico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --teal:#1D9E75;--tealD:#085041;--tealL:#E1F5EE;--tealM:#9FE1CB;
+    --amber:#EF9F27;--amberD:#633806;--amberL:#FAEEDA;
+    --red:#E24B4A;--redD:#791F1F;--redL:#FCEBEB;
+    --blue:#378ADD;--blueL:#E6F1FB;
+    --purple:#7F77DD;--purpleL:#EEEDFE;
+    --bg:#f5f5f0;--bgCard:#fff;--bgSec:#f0efea;
+    --txt:#1a1a1a;--txtSec:#6b6b68;--border:rgba(0,0,0,0.12);--borderMed:rgba(0,0,0,0.22);
+    --radius:8px;--radiusLg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#1a1a18;--bgCard:#242422;--bgSec:#2c2c2a;--txt:#f0efea;--txtSec:#9d9c95;--border:rgba(255,255,255,0.1);--borderMed:rgba(255,255,255,0.2);}
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;}
+  input,select,button{font-family:inherit;font-size:inherit;}
+  input[type=text],input[type=number],select{
+    border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px;font-size:13px;
+    background:var(--bgCard);color:var(--txt);outline:none;transition:border .15s;
+  }
+  input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--teal);}
+  input[type=range]{accent-color:var(--teal);cursor:pointer;}
+  input[type=checkbox]{accent-color:var(--teal);}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal);outline-offset:1px;}
+
+  /* Layout */
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .header{background:var(--bgCard);border-bottom:1px solid var(--border);padding:14px 24px;position:sticky;top:0;z-index:100;}
+  .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .logo{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .logo-icon{width:30px;height:30px;border-radius:7px;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .logo-title{font-size:15px;font-weight:600;color:var(--txt);}
+  .logo-sub{font-size:11px;color:var(--txtSec);}
+  .quarter-sel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .quarter-sel span{font-size:12px;color:var(--txtSec);}
+  .q-btn{font-size:12px;padding:4px 10px;border-radius:var(--radius);cursor:pointer;background:transparent;color:var(--txtSec);border:1px solid var(--border);transition:all .15s;}
+  .q-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:500;}
+  .progress-ring{display:flex;align-items:center;gap:8px;background:var(--bgSec);border-radius:var(--radius);padding:6px 12px;}
+  .ring-labels p{font-size:11px;color:var(--txtSec);}
+  .ring-labels b{font-size:11px;font-weight:500;color:var(--txt);}
+
+  /* Tabs */
+  .tabbar{background:var(--bgCard);border-bottom:1px solid var(--border);padding:0 24px;}
+  .tabbar-inner{max-width:1100px;margin:0 auto;display:flex;}
+  .tab-btn{padding:11px 18px;font-size:13px;cursor:pointer;background:transparent;border:none;color:var(--txtSec);border-bottom:2px solid transparent;transition:all .15s;font-weight:400;}
+  .tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500;}
+
+  /* Content */
+  .content{max-width:1100px;margin:0 auto;padding:20px 24px;flex:1;width:100%;}
+
+  /* Cards */
+  .card{background:var(--bgCard);border:1px solid var(--border);border-radius:var(--radiusLg);padding:16px 20px;}
+  .met-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+  .met-card{background:var(--bgSec);border-radius:var(--radius);padding:14px 16px;flex:1;min-width:140px;}
+  .met-label{font-size:12px;color:var(--txtSec);margin-bottom:4px;}
+  .met-val{font-size:24px;font-weight:500;line-height:1.1;}
+  .met-sub{font-size:12px;color:var(--txtSec);margin-top:4px;}
+
+  /* Progress bar */
+  .pbar-wrap{background:var(--bgSec);border-radius:99px;overflow:hidden;}
+  .pbar-fill{height:100%;border-radius:99px;transition:width .4s;}
+  .pbar-fill.no-data{background:var(--border)!important;width:100%!important;opacity:.45;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,0.06) 4px,rgba(0,0,0,0.06) 8px);}
+
+  /* Badge */
+  .badge{font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;white-space:nowrap;}
+  .badge.no-data{background:var(--bgSec);color:var(--txtSec);border:1px dashed var(--border);}
+
+  /* Buttons */
+  .btn{font-size:12px;font-weight:500;padding:5px 12px;border-radius:var(--radius);cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--txt);transition:all .15s;white-space:nowrap;}
+  .btn:hover{background:var(--bgSec);}
+  .btn-teal{background:var(--tealL);color:var(--tealD);border-color:var(--teal);}
+  .btn-blue{background:var(--blueL);color:var(--blue);border-color:var(--blue);}
+  .btn-danger{background:var(--redL);color:var(--redD);border-color:var(--red);}
+  .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+  /* Section heading */
+  .sec-hdr{font-size:13px;font-weight:500;color:var(--txtSec);letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px;}
+
+  /* OKR */
+  .okr-section{margin-bottom:20px;}
+  .okr-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bgSec);border-radius:var(--radiusLg);border:1px solid var(--border);cursor:pointer;transition:background .15s;user-select:none;}
+  .okr-head:hover{background:var(--bgSec);}
+  .okr-bar{width:4px;height:40px;border-radius:99px;flex-shrink:0;}
+  .okr-body{flex:1;min-width:0;}
+  .okr-title{font-size:15px;font-weight:500;color:var(--txt);}
+  .okr-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+  .okr-chevron{font-size:16px;color:var(--txtSec);}
+  .okr-krs{padding-left:16px;margin-top:8px;}
+  .okr-krs.collapsed{display:none;}
+
+  /* KR */
+  .kr-card{margin-bottom:10px;}
+  .kr-name{font-size:14px;font-weight:500;color:var(--txt);margin-bottom:8px;}
+  .kr-vals{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .kr-pct{font-size:13px;font-weight:500;min-width:36px;text-align:right;}
+  .kr-range{font-size:12px;color:var(--txtSec);white-space:nowrap;}
+  .kr-pa-hdr{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .kr-pa-label{font-size:11px;font-weight:500;color:var(--txtSec);letter-spacing:.05em;text-transform:uppercase;}
+  .kr-pa-avg{font-size:11px;color:var(--txtSec);}
+  .hr{flex:1;height:1px;background:var(--border);}
+
+  /* PA */
+  .pa-row{padding:10px 0;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+  .pa-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pa-dot{width:6px;height:6px;border-radius:99px;flex-shrink:0;}
+  .pa-name{font-size:13px;color:var(--txt);flex:1;min-width:0;word-break:break-word;}
+  .pa-owner{font-size:11px;color:var(--txtSec);}
+  .pa-bottom{display:flex;align-items:center;gap:8px;}
+
+  /* Empty state */
+  .empty-state{text-align:center;padding:2.5rem 1rem;color:var(--txtSec);font-size:13px;}
+
+  /* Edit mode */
+  .edit-notice{background:var(--amberL);border:1px solid var(--amber);border-radius:var(--radius);padding:8px 12px;margin-bottom:14px;font-size:12px;color:var(--amberD);}
+
+  /* KPI grid */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+  .kpi-card{position:relative;}
+  .kpi-cat{font-size:11px;font-weight:500;padding:2px 7px;border-radius:99px;background:var(--purpleL);color:var(--purple);}
+  .kpi-name{font-size:15px;font-weight:500;margin:8px 0 2px;}
+  .kpi-full{font-size:11px;color:var(--txtSec);margin-bottom:10px;}
+  .kpi-val-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+  .kpi-val{font-size:26px;font-weight:500;line-height:1;}
+  .kpi-of{font-size:12px;color:var(--txtSec);}
+  .kpi-pbar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .sparkline-wrap{height:55px;margin-top:4px;}
+  .spark-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--txtSec);margin-top:2px;}
+  .no-data-note{font-size:11px;color:var(--txtSec);font-style:italic;}
+
+  /* Dashboard charts */
+  .chart-wrap{position:relative;width:100%;overflow-x:auto;}
+  .chart-legend{display:flex;gap:16px;font-size:12px;color:var(--txtSec);margin-top:8px;flex-wrap:wrap;}
+  .leg-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;}
+
+  /* Footer */
+  footer{text-align:center;padding:14px;font-size:11px;color:var(--txtSec);border-top:1px solid var(--border);margin-top:20px;}
+
+  /* Util */
+  .flex{display:flex;}.gap8{gap:8px;}.gap12{gap:12px;}.wrap{flex-wrap:wrap;}.ac{align-items:center;}.jb{justify-content:space-between;}.mb8{margin-bottom:8px;}.mb14{margin-bottom:14px;}.mb20{margin-bottom:20px;}.mt8{margin-top:8px;}.f1{flex:1;min-width:0;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="white" stroke-width="1.5" fill="none"/>
+            <circle cx="8" cy="8" r="3" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-title">OKR Compass</div>
+          <div class="logo-sub">Planejamento Estratégico Trimestral</div>
+        </div>
+      </div>
+      <div class="quarter-sel" role="group" aria-label="Seleção de trimestre">
+        <span>Trimestre:</span>
+        <div id="quarter-btns" class="flex gap8"></div>
+      </div>
+      <div class="progress-ring" aria-label="Progresso geral dos OKRs do trimestre selecionado">
+        <div style="position:relative;width:34px;height:34px;flex-shrink:0;">
+          <svg id="ring-svg" viewBox="0 0 34 34" width="34" height="34" style="transform:rotate(-90deg)" aria-hidden="true">
+            <circle cx="17" cy="17" r="13" fill="none" stroke="var(--border)" stroke-width="3"/>
+            <circle id="ring-arc" cx="17" cy="17" r="13" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 81.7"/>
+          </svg>
+          <span id="ring-num" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;font-weight:500;"></span>
+        </div>
+        <div class="ring-labels">
+          <p>OKRs</p>
+          <b id="ring-label">0% geral</b>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabbar" role="tablist">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">Visão Geral</button>
+      <button class="tab-btn" data-tab="planning" role="tab" aria-selected="false">OKRs &amp; PAs</button>
+      <button class="tab-btn" data-tab="kpis" role="tab" aria-selected="false">KPIs</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="tab-dashboard" role="tabpanel"></div>
+    <div id="tab-planning" role="tabpanel" style="display:none;"></div>
+    <div id="tab-kpis" role="tabpanel" style="display:none;"></div>
+  </div>
+
+  <footer id="footer-bar"></footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & HELPERS
+// ═══════════════════════════════════════════════════════════════
+const C = {
+  teal:"#1D9E75",tealD:"#085041",tealL:"#E1F5EE",tealM:"#9FE1CB",
+  amber:"#EF9F27",amberD:"#633806",amberL:"#FAEEDA",
+  red:"#E24B4A",redD:"#791F1F",redL:"#FCEBEB",
+  blue:"#378ADD",blueL:"#E6F1FB",
+  purple:"#7F77DD",purpleL:"#EEEDFE",
+  grey:"#9d9c95",greyL:"#e8e7e2"
+};
+const ST = {
+  on_track:{label:"No Prazo",c:C.teal,d:C.tealD,bg:C.tealL},
+  at_risk:{label:"Em Risco",c:C.amber,d:C.amberD,bg:C.amberL},
+  behind:{label:"Atrasado",c:C.red,d:C.redD,bg:C.redL},
+};
+const NO_DATA = {label:"Sem dado",c:C.grey,d:C.grey,bg:C.greyL};
+let _uid=9000; const uid=()=>`${++_uid}`;
+const QUARTERS=["Q1 2026","Q2 2026","Q3 2026","Q4 2026"];
+const QUARTER_MONTHS={
+  "Q1 2026":["Jan","Fev","Mar"],
+  "Q2 2026":["Abr","Mai","Jun"],
+  "Q3 2026":["Jul","Ago","Set"],
+  "Q4 2026":["Out","Nov","Dez"]
+};
+
+function fmtVal(v,f){
+  if(v==null) return "—";
+  if(f==="currency"){
+    if(v>=1e6)return`R$ ${(v/1e6).toFixed(2)}M`;
+    if(v>=1e3)return`R$ ${(v/1e3).toFixed(0)}K`;
+    return`R$ ${v}`;
+  }
+  if(f==="percent")return`${v}%`;
+  if(typeof v==="number" && !Number.isInteger(v)) return v.toFixed(2).replace(/\.?0+$/,'');
+  return String(v);
+}
+function getPct(cur,tgt,inv){
+  if(cur==null||tgt==null||tgt===0)return 0;
+  let r;
+  if(inv){
+    if(cur===0) return 100;
+    r=(tgt/cur)*100;
+  } else {
+    r=(cur/tgt)*100;
+  }
+  return Math.min(100,Math.max(0,Math.round(r)));
+}
+// KR progress = its own cur/tgt if defined, else average of PAs with defined progress
+function krPct(k){
+  if(k.tgt && k.tgt>0 && k.cur!=null) return getPct(k.cur,k.tgt,k.inv);
+  const defined=(k.pas||[]).filter(p=>p.prog!=null);
+  if(!defined.length) return 0;
+  return Math.round(defined.reduce((s,p)=>s+p.prog,0)/defined.length);
+}
+function paStatus(prog){
+  if(prog==null) return null;
+  return prog>=70?"on_track":prog>=40?"at_risk":"behind";
+}
+function scColor(p){return p>=70?C.teal:p>=40?C.amber:C.red;}
+
+// ═══════════════════════════════════════════════════════════════
+// INITIAL DATA — extraído da planilha "[GALICIA] Planejamento Estratégico.xlsx"
+// Abas: 1º/2º/3º/4º Trimestre - OKRs  +  INDICADORES DO PE
+// ═══════════════════════════════════════════════════════════════
+// === BEGIN AUTO-GENERATED DATA ===
+// Tudo entre BEGIN/END é regerado pelo workflow n8n. Não edite manualmente.
+// Helper: build a PA from spreadsheet meta/resultado pair
+function mkPa(id,name,meta,res){
+  let prog=null;
+  if(meta!=null && meta>0 && res!=null) prog=Math.min(100,Math.max(0,Math.round((res/meta)*100)));
+  return {id,name,prog,owner:"A definir",st:paStatus(prog)||"on_track",meta:meta??null,res:res??null};
+}
+
+const Q1_OKRS=[
+  {id:"o1",obj:"Expandir a Presença Digital do Galícia na Bahia",krs:[
+    {id:"o1k1",name:"Crescer +15% o total de seguidores somados em todas plataformas",tgt:0,cur:0,fmt:"number",inv:false,pas:[
+      mkPa("o1k1p1","Realizar relatório das métricas de abril de cada canal (seguidores, alcance, engajamento).",0,0),
+      mkPa("o1k1p2","Fazer 1 calendário editorial mensal com 15 publicações/mês por canal principal.",0,0),
+      mkPa("o1k1p3","Criar 2 séries de conteúdos exclusivos para TikTok (ex: Sagas de reconstrução (storytelling), desafios).",2,1),
+      mkPa("o1k1p4","Executar ao menos 3 ações de colaboração com perfis externos (clubes, páginas de futebol baiano, influenciadores e marcas esportivas).",3,2),
+      mkPa("o1k1p5","Fazer e Monitorar relatórios semanais de cada canal e para ajustar pauta conforme a performance de cada conteúdo.",0,0),
+      mkPa("o1k1p6","Criar 1 plano de comunicação, para a otimização e manutenção de campanhas pagas (Meta ads e Google ads).",0,0)
+    ]},
+    {id:"o1k2",name:"Atingir taxa de engajamento médio de x% nas publicações dos canais principais.",tgt:0,cur:0,fmt:"percent",inv:false,pas:[
+      mkPa("o1k2p1","Implementar 1 ferramenta de monitoramento de engajamento (ex: Meta Business Suite, Metricool).",0,0),
+      mkPa("o1k2p2","Produzir 1 conteúdo enquete/interativo por semana para estimular participação.",0,0),
+      mkPa("o1k2p3","Analisar os 5 conteúdos de melhor engajamento do trimestre anterior e replicar o formato (com base no relatório de métricas).",0,0),
+      mkPa("o1k2p4","Fazer X testes de publicação em horários de pico definidos por plataforma e documentar resultados.",0,0),
+      mkPa("o1k2p5","Responder 150 comentários por mês nos primeiros 60 min após cada publicação para aumentar alcance.",0,0)
+    ]}
+  ]},
+  {id:"o2",obj:"Lançar o Ecossistema de Influência e Parcerias do Galícia",krs:[
+    {id:"o2k1",name:"Fechar ao menos 3 contratos ativos com micro/médio influenciadores (foco baiano).",tgt:0,cur:0,fmt:"number",inv:false,pas:[
+      mkPa("o2k1p1","Mapear e listar 20 perfis de influenciadores baianos com 20k–500k seguidores e fit com futebol e/ou cultura baiana.",0,0),
+      mkPa("o2k1p2","Fazer 1 documento com definição dos critérios de seleção: engajamento mínimo (3%), alinhamento de valores, audiência baiana, impressões mensais e visualizações médias.",0,0),
+      mkPa("o2k1p3","Criar 1 proposta padrão de parceria (kit de boas-vindas, deliverables mensais, modelo de contrato).",0,0),
+      mkPa("o2k1p4","Realizar prospecção ativa: contato com 20 perfis selecionados (com base no PA1).",0,0),
+      mkPa("o2k1p5","Criar 1 apresentação de proposta para o contato com os possíveis influenciadores do ecossistema.",0,0)
+    ]},
+    {id:"o2k2",name:"Iniciar mapeamento e prospecção de ao menos 1 grande influenciador/jogador.",tgt:0,cur:0,fmt:"number",inv:false,pas:[
+      mkPa("o2k2p1","Fazer 1 briefing do Galícia com escopo, perfis alvo e modelo de parceria desejado.",0,0),
+      mkPa("o2k2p2","Realizar 1 mapeamento de 3 personas prioritárias para possíveis parceiros.",0,0),
+      mkPa("o2k2p3","Preparar 1 estudo de viabilidade financeira e formatos contratuais possíveis para cada perfil.",0,0),
+      mkPa("o2k2p4","Preparar 1 pitch de apresentação do clube com base nas personas traçadas do PA2.",0,0),
+      mkPa("o2k2p5","Realizar 1 reunião/contato formal com o perfil selecionado.",0,0)
+    ]}
+  ]},
+  {id:"o3",obj:"Ativar o Patrimônio Emocional e a Comunicação Híbrida do Galícia",krs:[
+    {id:"o3k1",name:"Publicar ao menos 8 peças de conteúdo histórico/emocional no trimestre.",tgt:0,cur:0,fmt:"number",inv:false,pas:[
+      mkPa("o3k1p1","Mapear e resgatar x materiais fotográfico/vídeo histórico do clube com ex-jogadores e torcedores fundadores.",0,0),
+      mkPa("o3k1p2","Entrevistar 3 ex-jogadores ou torcedores fundadores para série Memórias do Galícia.",0,0),
+      mkPa("o3k1p3","Produzir e publicar 1 post de resgate fotográfico histórico por semana nas redes sociais.",0,0),
+      mkPa("o3k1p4","Lançar 1 campanha participativa: convidar torcedores a enviarem memórias via direct/stories.",0,0),
+      mkPa("o3k1p5","Publicar 1 mini-documentário ou vídeo longo (≥5 min) no YouTube sobre a história do clube.",0,0)
+    ]},
+    {id:"o3k2",name:"Criar e implementar manuais de tom de voz para 2 segmentos (público jovem e público tradicional).",tgt:0,cur:0,fmt:"number",inv:false,pas:[
+      mkPa("o3k2p1","Realizar 1 pesquisa/benchmarking de como clubes referência comunicam para cada segmento (Feira FC + clubes).",null,0),
+      mkPa("o3k2p2","Criar 1 Manual de Tom de Voz Jovem: linguagem, formatos (Reels, TikTok), frequência e exemplos práticos.",null,0),
+      mkPa("o3k2p3","Criar 1 Manual de Tom de Voz Tradicional: linguagem, formatos (Facebook, YouTube, newsletter), frequência.",null,0),
+      mkPa("o3k2p4","Montar 1 calendário editorial mensal com mix 50% entretenimento / 30% histórico-institucional / 20% esportivo.",null,0),
+      mkPa("o3k2p5","Fazer 1 revisão de performance ao fim de cada mês: engajamento por segmento vs. meta e ajuste para Q2.",null,0)
+    ]}
+  ]}
+];
+
+// Q2: textos de KR preservados da planilha, sem PAs preenchidos
+const Q2_OKRS=[
+  {id:"o1",obj:"Expandir a Presença Digital do Galícia na Bahia",krs:[
+    {id:"o1k1",name:"Crescer +15% o total de seguidores somados em todas plataformas",tgt:0,cur:0,fmt:"number",inv:false,pas:[]},
+    {id:"o1k2",name:"Atingir taxa de engajamento médio de x% nas publicações dos canais principais.",tgt:0,cur:0,fmt:"percent",inv:false,pas:[]}
+  ]},
+  {id:"o2",obj:"Lançar o Ecossistema de Influência e Parcerias do Galícia",krs:[
+    {id:"o2k1",name:"Fechar ao menos 3 contratos ativos com micro/médio influenciadores (foco baiano).",tgt:0,cur:0,fmt:"number",inv:false,pas:[]},
+    {id:"o2k2",name:"Iniciar mapeamento e prospecção de ao menos 1 grande influenciador/jogador.",tgt:0,cur:0,fmt:"number",inv:false,pas:[]}
+  ]},
+  {id:"o3",obj:"Ativar o Patrimônio Emocional e a Comunicação Híbrida do Galícia",krs:[
+    {id:"o3k1",name:"Publicar ao menos 8 peças de conteúdo histórico/emocional no trimestre.",tgt:0,cur:0,fmt:"number",inv:false,pas:[]},
+    {id:"o3k2",name:"Criar e implementar manuais de tom de voz para 2 segmentos (público jovem e público tradicional).",tgt:0,cur:0,fmt:"number",inv:false,pas:[]}
+  ]}
+];
+
+// Q3: apenas OBJ2 KR1 tem texto definido na planilha
+const Q3_OKRS=[
+  {id:"o1",obj:"Expandir a Presença Digital do Galícia na Bahia",krs:[
+    {id:"o1k1",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true},
+    {id:"o1k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]},
+  {id:"o2",obj:"Lançar o Ecossistema de Influência e Parcerias do Galícia",krs:[
+    {id:"o2k1",name:"Conversar com 6 fornecedores para entender melhor o mercado (Documentar junto aos fornecedores 6 aplicações das matérias-primas do portfólio).",tgt:0,cur:0,fmt:"number",inv:false,pas:[]},
+    {id:"o2k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]},
+  {id:"o3",obj:"Ativar o Patrimônio Emocional e a Comunicação Híbrida do Galícia",krs:[
+    {id:"o3k1",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true},
+    {id:"o3k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]}
+];
+
+// Q4: nenhum KR definido na planilha
+const Q4_OKRS=[
+  {id:"o1",obj:"Expandir a Presença Digital do Galícia na Bahia",krs:[
+    {id:"o1k1",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true},
+    {id:"o1k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]},
+  {id:"o2",obj:"Lançar o Ecossistema de Influência e Parcerias do Galícia",krs:[
+    {id:"o2k1",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true},
+    {id:"o2k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]},
+  {id:"o3",obj:"Ativar o Patrimônio Emocional e a Comunicação Híbrida do Galícia",krs:[
+    {id:"o3k1",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true},
+    {id:"o3k2",name:"(Key Result a definir)",tgt:0,cur:0,fmt:"number",inv:false,pas:[],undefined:true}
+  ]}
+];
+
+// KPIs (Indicadores do PE) — 6 indicadores estratégicos, com meta e resultado por trimestre
+// Meta anual em todos é "X (A ser definida)" → exposta como null
+function mkKpi(id,name,full,cat,fmt,inv,val,tgt,trend){
+  return {id,name,full,cat,fmt,inv,val,tgt,tgtAnnual:null,trend};
+}
+const Q1_KPIS=[
+  mkKpi("kpi1","Crescimento de Seguidores","Crescimento de Seguidores (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0.1, null, [0.1,0,0]),
+  mkKpi("kpi2","Taxa de Engajamento Médio","Taxa de Engajamento Médio (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, null, [0,0,0]),
+  mkKpi("kpi3","Nº de Parceiros/Embaixadores","Nº de Parceiros/Embaixadores Ativos — Ecossistema de Influência","Parcerias","number",false, 1, 1, [1,0,0]),
+  mkKpi("kpi4","Alcance de Parcerias","Alcance Gerado por Parcerias (impressões/mês) — Ecossistema","Parcerias","number",false, 0, null, [0,0,0]),
+  mkKpi("kpi5","Conteúdos Históricos","Nº de Conteúdos Históricos/Emocionais Publicados — Patrimônio Emocional","Identidade","number",false, 0, 0, [0,0,0]),
+  mkKpi("kpi6","Sentimento Positivo","Sentimento Positivo nas Menções (% positivo) — Patrimônio Emocional","Identidade","percent",false, 0, null, [0,0,0])
+];
+const Q2_KPIS=[
+  mkKpi("kpi1","Crescimento de Seguidores","Crescimento de Seguidores (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 12000, [0,0,0]),
+  mkKpi("kpi2","Taxa de Engajamento Médio","Taxa de Engajamento Médio (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 2, [0,0,0]),
+  mkKpi("kpi3","Nº de Parceiros/Embaixadores","Nº de Parceiros/Embaixadores Ativos — Ecossistema de Influência","Parcerias","number",false, 0, 95, [0,0,0]),
+  mkKpi("kpi4","Alcance de Parcerias","Alcance Gerado por Parcerias (impressões/mês) — Ecossistema","Parcerias","number",false, 0, 30, [0,0,0]),
+  mkKpi("kpi5","Conteúdos Históricos","Nº de Conteúdos Históricos/Emocionais Publicados — Patrimônio Emocional","Identidade","number",false, 0, 1, [0,0,0]),
+  mkKpi("kpi6","Sentimento Positivo","Sentimento Positivo nas Menções (% positivo) — Patrimônio Emocional","Identidade","percent",false, 0, 1500, [0,0,0])
+];
+const Q3_KPIS=[
+  mkKpi("kpi1","Crescimento de Seguidores","Crescimento de Seguidores (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 12000, [0,0,0]),
+  mkKpi("kpi2","Taxa de Engajamento Médio","Taxa de Engajamento Médio (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 2, [0,0,0]),
+  mkKpi("kpi3","Nº de Parceiros/Embaixadores","Nº de Parceiros/Embaixadores Ativos — Ecossistema de Influência","Parcerias","number",false, 0, 95, [0,0,0]),
+  mkKpi("kpi4","Alcance de Parcerias","Alcance Gerado por Parcerias (impressões/mês) — Ecossistema","Parcerias","number",false, 0, 40, [0,0,0]),
+  mkKpi("kpi5","Conteúdos Históricos","Nº de Conteúdos Históricos/Emocionais Publicados — Patrimônio Emocional","Identidade","number",false, 0, 0, [0,0,0]),
+  mkKpi("kpi6","Sentimento Positivo","Sentimento Positivo nas Menções (% positivo) — Patrimônio Emocional","Identidade","percent",false, 0, 1500, [0,0,0])
+];
+const Q4_KPIS=[
+  mkKpi("kpi1","Crescimento de Seguidores","Crescimento de Seguidores (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 19000, [0,0,0]),
+  mkKpi("kpi2","Taxa de Engajamento Médio","Taxa de Engajamento Médio (%) — Expansão da Presença Digital","Presença Digital","percent",false, 0, 2, [0,0,0]),
+  mkKpi("kpi3","Nº de Parceiros/Embaixadores","Nº de Parceiros/Embaixadores Ativos — Ecossistema de Influência","Parcerias","number",false, 0, 95, [0,0,0]),
+  mkKpi("kpi4","Alcance de Parcerias","Alcance Gerado por Parcerias (impressões/mês) — Ecossistema","Parcerias","number",false, 0, 50, [0,0,0]),
+  mkKpi("kpi5","Conteúdos Históricos","Nº de Conteúdos Históricos/Emocionais Publicados — Patrimônio Emocional","Identidade","number",false, 0, 1, [0,0,0]),
+  mkKpi("kpi6","Sentimento Positivo","Sentimento Positivo nas Menções (% positivo) — Patrimônio Emocional","Identidade","percent",false, 0, 1500, [0,0,0])
+];
+
+// === END AUTO-GENERATED DATA ===
+
+const D0={
+  quarter:"Q1 2026",
+  quartersData:{
+    "Q1 2026":{okrs:Q1_OKRS, kpis:Q1_KPIS},
+    "Q2 2026":{okrs:Q2_OKRS, kpis:Q2_KPIS},
+    "Q3 2026":{okrs:Q3_OKRS, kpis:Q3_KPIS},
+    "Q4 2026":{okrs:Q4_OKRS, kpis:Q4_KPIS}
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE  (com migração silenciosa do formato antigo)
+// ═══════════════════════════════════════════════════════════════
+let state = JSON.parse(JSON.stringify(D0));
+try{
+  const saved = localStorage.getItem("okr_compass");
+  if(saved){
+    const d=JSON.parse(saved);
+    if(d && d.quartersData && d.quarter && QUARTERS.indexOf(d.quarter)>=0){
+      // novo formato: restaura, garantindo que todos os trimestres existam
+      state.quarter = d.quarter;
+      QUARTERS.forEach(q=>{
+        if(d.quartersData[q] && Array.isArray(d.quartersData[q].okrs) && Array.isArray(d.quartersData[q].kpis)){
+          state.quartersData[q] = d.quartersData[q];
+        }
+      });
+    }
+    // formato antigo (d.okrs/d.kpis sem quartersData): descarta silenciosamente
+  }
+}catch(e){}
+
+let currentTab="dashboard";
+let editMode=false;
+let sparkCharts={};
+let dashCharts={};
+let saveTimer=null;
+
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{localStorage.setItem("okr_compass",JSON.stringify(state));}catch(e){}
+  },600);
+}
+
+function activeQ(){ return state.quartersData[state.quarter]; }
+function activeOkrs(){ return activeQ().okrs; }
+function activeKpis(){ return activeQ().kpis; }
+
+// ═══════════════════════════════════════════════════════════════
+// COMPUTED
+// ═══════════════════════════════════════════════════════════════
+function allKrs(){return activeOkrs().flatMap(o=>o.krs.map(k=>({...k,okrId:o.id,okrLabel:o.obj})));}
+function allPas(){return allKrs().flatMap(k=>(k.pas||[]).map(p=>({...p,krId:k.id,krName:k.name})));}
+function avgOkrPct(){
+  const okrs=activeOkrs();
+  if(!okrs.length)return 0;
+  const s=okrs.reduce((acc,o)=>{
+    const avg=o.krs.length?o.krs.reduce((ss,k)=>ss+krPct(k),0)/o.krs.length:0;
+    return acc+avg;
+  },0);
+  return Math.round(s/okrs.length);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEADER
+// ═══════════════════════════════════════════════════════════════
+function renderHeader(){
+  const qb = document.getElementById("quarter-btns");
+  qb.innerHTML = QUARTERS.map(q=>
+    `<button class="q-btn${state.quarter===q?" active":""}" type="button" aria-pressed="${state.quarter===q}" onclick="setQuarter('${q}')">${q}</button>`
+  ).join("");
+
+  const avg = avgOkrPct();
+  const circ = 81.7;
+  const arc = (avg/100)*circ;
+  document.getElementById("ring-arc").setAttribute("stroke-dasharray",`${arc} ${circ}`);
+  document.getElementById("ring-arc").setAttribute("stroke",scColor(avg));
+  document.getElementById("ring-num").textContent=avg;
+  document.getElementById("ring-num").style.color=scColor(avg);
+  document.getElementById("ring-label").textContent=`${avg}% geral`;
+
+  // Footer
+  const okrs=activeOkrs(), krs=allKrs(), pas=allPas(), kpis=activeKpis();
+  document.getElementById("footer-bar").textContent=
+    `${state.quarter} · ${okrs.length} OKRs · ${krs.length} KRs · ${pas.length} PAs · ${kpis.length} KPIs · dados salvos automaticamente`;
+}
+
+function setQuarter(q){
+  if(!state.quartersData[q]) return;
+  // Sair do modo de edição ao trocar de trimestre evita confundir contextos
+  editMode=false;
+  state.quarter=q;
+  // destruir charts ativos antes de re-renderizar
+  Object.keys(dashCharts).forEach(k=>{try{dashCharts[k].destroy();}catch(e){} delete dashCharts[k];});
+  Object.keys(sparkCharts).forEach(k=>{try{sparkCharts[k].destroy();}catch(e){} delete sparkCharts[k];});
+  save();
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll(".tab-btn").forEach(b=>{
+    const active=b.dataset.tab===tab;
+    b.classList.toggle("active",active);
+    b.setAttribute("aria-selected", active?"true":"false");
+  });
+  ["dashboard","planning","kpis"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display=t===tab?"":"none";
+  });
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
+// ═══════════════════════════════════════════════════════════════
+function render(){
+  renderHeader();
+  if(currentTab==="dashboard") renderDashboard();
+  if(currentTab==="planning")  renderPlanning();
+  if(currentTab==="kpis")      renderKpis();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard(){
+  const el=document.getElementById("tab-dashboard");
+  const okrs=activeOkrs(), kpis=activeKpis();
+  const krs=allKrs(), pas=allPas();
+  const onTrack=pas.filter(p=>p.st==="on_track" && p.prog!=null).length;
+  const atRisk =pas.filter(p=>p.st==="at_risk"  && p.prog!=null).length;
+  const behind =pas.filter(p=>p.st==="behind"   && p.prog!=null).length;
+  const noData =pas.filter(p=>p.prog==null).length;
+  const kpiOk=kpis.filter(k=>k.tgt!=null && getPct(k.val,k.tgt,k.inv)>=70).length;
+  const kpiWithMeta=kpis.filter(k=>k.tgt!=null).length;
+  const avg=avgOkrPct();
+
+  // Cascade data (apenas KRs com PAs preenchidos)
+  const cascade=okrs.flatMap(o=>o.krs.filter(k=>(k.pas||[]).length>0).map(k=>{
+    const defined=(k.pas||[]).filter(p=>p.prog!=null);
+    return {
+      kr:k.name.length>22?k.name.slice(0,22)+"…":k.name,
+      krPct:krPct(k),
+      avgPa:defined.length?Math.round(defined.reduce((s,p)=>s+p.prog,0)/defined.length):0
+    };
+  }));
+
+  // PA data (apenas PAs com progresso definido)
+  const paData=pas.filter(p=>p.prog!=null).map(p=>({
+    name:p.name.length>26?p.name.slice(0,26)+"…":p.name,
+    prog:p.prog,
+    color:ST[p.st]?.c||C.teal
+  }));
+
+  el.innerHTML=`
+  <div class="met-grid">
+    <div class="met-card"><div class="met-label">Progresso Geral OKRs</div><div class="met-val" style="color:${scColor(avg)}">${avg}%</div><div class="met-sub">${okrs.length} objetivos em ${state.quarter}</div></div>
+    <div class="met-card"><div class="met-label">PAs No Prazo</div><div class="met-val" style="color:${C.teal}">${onTrack}</div><div class="met-sub">${atRisk} em risco · ${behind} atrasados${noData?` · ${noData} sem dado`:""}</div></div>
+    <div class="met-card"><div class="met-label">KPIs Atingidos</div><div class="met-val" style="color:${C.blue}">${kpiOk}/${kpiWithMeta||kpis.length}</div><div class="met-sub">${kpiWithMeta?"acima de 70% da meta":"meta a definir"}</div></div>
+    <div class="met-card"><div class="met-label">Total de PAs</div><div class="met-val">${pas.length}</div><div class="met-sub">em ${krs.length} Key Results</div></div>
+  </div>
+
+  ${cascade.length?`
+  <div class="card mb20">
+    <div class="sec-hdr">Cascata de Contribuição — PA → KR</div>
+    <p style="font-size:12px;color:var(--txtSec);margin-bottom:14px;">Comparação entre progresso médio dos PAs e realização do KR (${state.quarter})</p>
+    <div class="chart-wrap">
+      <div style="position:relative;width:100%;height:${cascade.length*52+70}px;">
+        <canvas id="chart-cascade" role="img" aria-label="Gráfico de cascata PA versus KR"></canvas>
+      </div>
+    </div>
+    <div class="chart-legend">
+      <span><span class="leg-dot" style="background:${C.tealM}"></span>Média PAs</span>
+      <span><span class="leg-dot" style="background:${C.teal}"></span>Realização KR</span>
+    </div>
+  </div>
+  `:`
+  <div class="card mb20">
+    <div class="sec-hdr">Cascata de Contribuição — PA → KR</div>
+    <div class="empty-state">Sem PAs preenchidos em ${state.quarter}. Cadastre planos de ação na aba "OKRs &amp; PAs".</div>
+  </div>
+  `}
+
+  <div class="card mb20">
+    <div class="sec-hdr">Progresso por OKR</div>
+    <div id="okr-progress-list"></div>
+  </div>
+
+  ${paData.length?`
+  <div class="card mb20">
+    <div class="sec-hdr">Desempenho de todos os PAs</div>
+    <div class="chart-wrap">
+      <div style="position:relative;width:100%;height:${paData.length*42+70}px;">
+        <canvas id="chart-pas" role="img" aria-label="Gráfico de progresso dos planos de ação"></canvas>
+      </div>
+    </div>
+  </div>
+  `:`
+  <div class="card mb20">
+    <div class="sec-hdr">Desempenho de todos os PAs</div>
+    <div class="empty-state">Nenhum PA com progresso registrado neste trimestre.</div>
+  </div>
+  `}
+  `;
+
+  // OKR progress list
+  const opl=document.getElementById("okr-progress-list");
+  if(!okrs.length){
+    opl.innerHTML=`<div class="empty-state">Nenhum OKR neste trimestre.</div>`;
+  } else {
+    okrs.forEach(o=>{
+      const avg=o.krs.length?Math.round(o.krs.reduce((s,k)=>s+krPct(k),0)/o.krs.length):0;
+      const div=document.createElement("div");
+      div.style.marginBottom="16px";
+      div.innerHTML=`
+        <div class="flex jb ac mb8">
+          <span style="font-size:13px;">${esc(o.obj)}</span>
+          <span style="font-size:13px;font-weight:500;color:${scColor(avg)};margin-left:8px;">${avg}%</span>
+        </div>
+        <div class="pbar-wrap" style="height:10px;margin-bottom:6px;">
+          <div class="pbar-fill" style="width:${avg}%;background:${scColor(avg)};height:100%;"></div>
+        </div>
+        <div class="flex gap8 wrap">
+          ${o.krs.map(k=>{const kp=krPct(k);const hasData=(k.pas||[]).some(p=>p.prog!=null)||(k.tgt&&k.tgt>0);return`
+            <span style="font-size:11px;color:var(--txtSec);display:flex;align-items:center;gap:3px;">
+              <span style="width:6px;height:6px;border-radius:99px;background:${hasData?scColor(kp):C.grey};display:inline-block;flex-shrink:0;"></span>
+              ${esc(k.name.length>30?k.name.slice(0,30)+"…":k.name)}: <b style="color:${hasData?scColor(kp):C.grey}">${hasData?kp+"%":"—"}</b>
+            </span>`}).join("")}
+        </div>
+      `;
+      opl.appendChild(div);
+    });
+  }
+
+  // Cascade chart
+  requestAnimationFrame(()=>{
+    destroyChart("cascade");
+    const ctx=document.getElementById("chart-cascade");
+    if(ctx&&cascade.length){
+      dashCharts["cascade"]=new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:cascade.map(d=>d.kr),
+          datasets:[
+            {label:"Média PAs",data:cascade.map(d=>d.avgPa),backgroundColor:C.tealM,borderRadius:4,barPercentage:0.5},
+            {label:"Realização KR",data:cascade.map(d=>d.krPct),backgroundColor:C.teal,borderRadius:4,barPercentage:0.5},
+          ]
+        },
+        options:{
+          indexAxis:"y",responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.x}%`}}},
+          scales:{
+            x:{min:0,max:100,ticks:{callback:v=>`${v}%`,font:{size:11}},grid:{color:"rgba(0,0,0,0.06)"}},
+            y:{ticks:{font:{size:11}},grid:{display:false}}
+          }
+        }
+      });
+    }
+
+    // PA chart
+    destroyChart("pas");
+    const ctx2=document.getElementById("chart-pas");
+    if(ctx2&&paData.length){
+      dashCharts["pas"]=new Chart(ctx2,{
+        type:"bar",
+        data:{
+          labels:paData.map(d=>d.name),
+          datasets:[{label:"Progresso",data:paData.map(d=>d.prog),backgroundColor:paData.map(d=>d.color),borderRadius:4,barPercentage:0.55}]
+        },
+        options:{
+          indexAxis:"y",responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Progresso: ${ctx.parsed.x}%`}}},
+          scales:{
+            x:{min:0,max:100,ticks:{callback:v=>`${v}%`,font:{size:11}},grid:{color:"rgba(0,0,0,0.06)"}},
+            y:{ticks:{font:{size:11}},grid:{display:false}}
+          }
+        }
+      });
+    }
+  });
+}
+
+function destroyChart(id){
+  if(dashCharts[id]){try{dashCharts[id].destroy();}catch(e){} delete dashCharts[id];}
+  if(sparkCharts[id]){try{sparkCharts[id].destroy();}catch(e){} delete sparkCharts[id];}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PLANNING
+// ═══════════════════════════════════════════════════════════════
+function renderPlanning(){
+  const el=document.getElementById("tab-planning");
+  const okrs=activeOkrs();
+  let html=`
+  <div class="flex jb ac mb14 wrap gap8">
+    <div class="sec-hdr" style="margin:0">Hierarquia OKR · KR · PA — ${state.quarter}</div>
+    <div class="flex gap8">
+      <button class="btn ${editMode?"btn-primary":""}" type="button" onclick="toggleEdit()">${editMode?"✓ Salvar Edições":"✎ Editar Planejamento"}</button>
+      ${editMode?`<button class="btn btn-blue" type="button" onclick="addOkr()">+ Novo OKR</button>`:""}
+    </div>
+  </div>
+  ${editMode?`<div class="edit-notice">Modo de edição ativo — alterações se aplicam apenas a ${state.quarter}. Clique em "Salvar Edições" quando terminar.</div>`:""}
+  `;
+
+  if(!okrs.length){
+    html+=`<div class="empty-state">Nenhum OKR cadastrado em ${state.quarter}. Clique em "Editar Planejamento" para começar.</div>`;
+  } else {
+    okrs.forEach(o=>{
+      html+=renderOkrSection(o);
+    });
+  }
+
+  el.innerHTML=html;
+  // Bind toggle chevrons
+  document.querySelectorAll(".okr-toggle").forEach(btn=>{
+    btn.addEventListener("click",function(e){
+      if(editMode)return;
+      const id=this.dataset.id;
+      const body=document.getElementById("okr-body-"+id);
+      const ch=document.getElementById("okr-ch-"+id);
+      const open=body.classList.toggle("collapsed");
+      ch.textContent=open?"▸":"▾";
+    });
+  });
+}
+
+function renderOkrSection(o){
+  const avg=o.krs.length?Math.round(o.krs.reduce((s,k)=>s+krPct(k),0)/o.krs.length):0;
+  const totalPas=o.krs.reduce((s,k)=>s+(k.pas||[]).length,0);
+  return `
+  <div class="okr-section">
+    <div class="okr-head okr-toggle" data-id="${o.id}" tabindex="0" role="button" aria-label="Expandir/recolher ${esc(o.obj)}">
+      <div class="okr-bar" style="background:${scColor(avg)};"></div>
+      <div class="okr-body">
+        ${editMode
+          ?`<input type="text" value="${esc(o.obj)}" onchange="updateOkrObj('${o.id}',this.value)" style="width:100%;font-size:15px;font-weight:500;" aria-label="Objetivo">`
+          :`<div class="okr-title">${esc(o.obj)}</div>`
+        }
+        <div class="okr-meta">
+          <div class="pbar-wrap" style="width:160px;height:6px;"><div class="pbar-fill" style="width:${avg}%;background:${scColor(avg)};height:100%;"></div></div>
+          <span style="font-size:12px;font-weight:500;color:${scColor(avg)}">${avg}%</span>
+          <span style="font-size:11px;color:var(--txtSec)">${o.krs.length} KRs · ${totalPas} PAs</span>
+        </div>
+      </div>
+      ${editMode
+        ?`<button class="btn btn-danger" type="button" onclick="deleteOkr('${o.id}');event.stopPropagation()">Excluir OKR</button>`
+        :`<span class="okr-chevron" id="okr-ch-${o.id}" aria-hidden="true">▾</span>`
+      }
+    </div>
+    <div class="okr-krs" id="okr-body-${o.id}">
+      ${o.krs.map(k=>renderKrCard(o.id,k)).join("")}
+      ${editMode?`<button class="btn btn-blue" type="button" style="margin-bottom:8px;" onclick="addKr('${o.id}')">+ Adicionar Key Result</button>`:""}
+    </div>
+  </div>`;
+}
+
+function renderKrCard(oid,k){
+  const p=krPct(k);
+  const pas=k.pas||[];
+  const definedPas=pas.filter(pa=>pa.prog!=null);
+  const avgPa=definedPas.length?Math.round(definedPas.reduce((s,pa)=>s+pa.prog,0)/definedPas.length):0;
+  const hasKrTarget=k.tgt && k.tgt>0;
+  const hasData=hasKrTarget || definedPas.length>0;
+  const isUndefined=k.undefined===true;
+  return `
+  <div class="card kr-card">
+    <div class="flex jb ac mb8 wrap gap8">
+      ${editMode
+        ?`<input type="text" value="${esc(k.name)}" onchange="updateKrField('${oid}','${k.id}','name',this.value)" style="flex:1;font-size:14px;font-weight:500;" aria-label="Nome do KR">`
+        :`<div class="kr-name" style="margin:0;flex:1">${esc(k.name)}${isUndefined?` <span class="badge no-data" style="margin-left:6px;">Sem dado</span>`:""}</div>`
+      }
+      ${editMode?`<button class="btn btn-danger" type="button" onclick="deleteKr('${oid}','${k.id}')">Remover KR</button>`:""}
+    </div>
+    ${editMode?`
+    <div class="flex gap8 wrap mb8" style="align-items:flex-end;">
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Valor Atual</div>
+        <input type="number" value="${k.cur??0}" onchange="updateKrField('${oid}','${k.id}','cur',+this.value)" style="width:110px;" aria-label="Valor atual do KR">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Meta</div>
+        <input type="number" value="${k.tgt??0}" onchange="updateKrField('${oid}','${k.id}','tgt',+this.value)" style="width:110px;" aria-label="Meta do KR">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Formato</div>
+        <select onchange="updateKrField('${oid}','${k.id}','fmt',this.value)" aria-label="Formato">
+          <option value="number"${k.fmt==="number"?" selected":""}>Número</option>
+          <option value="currency"${k.fmt==="currency"?" selected":""}>Moeda (R$)</option>
+          <option value="percent"${k.fmt==="percent"?" selected":""}>Porcentagem</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--txtSec);cursor:pointer;">
+        <input type="checkbox" ${k.inv?"checked":""} onchange="updateKrField('${oid}','${k.id}','inv',this.checked)">
+        Inverso (menor = melhor)
+      </label>
+    </div>`:""}
+    <div class="kr-vals">
+      <div class="pbar-wrap f1" style="height:10px;"><div class="pbar-fill${hasData?"":" no-data"}" style="width:${hasData?p+"%":"100%"};background:${hasData?scColor(p):""};height:100%;"></div></div>
+      <span class="kr-pct" style="color:${hasData?scColor(p):C.grey}">${hasData?p+"%":"—"}</span>
+      <span class="kr-range">${hasKrTarget?`${fmtVal(k.cur,k.fmt)} / ${fmtVal(k.tgt,k.fmt)}`:`Meta a definir`}</span>
+    </div>
+    <div class="kr-pa-hdr">
+      <span class="kr-pa-label">Planos de Ação (${pas.length})</span>
+      <div class="hr"></div>
+      <span class="kr-pa-avg">${definedPas.length?`Média: <b style="color:${scColor(avgPa)}">${avgPa}%</b>`:`<span class="no-data-note">sem PAs com dado</span>`}</span>
+    </div>
+    ${pas.length?pas.map(pa=>renderPaRow(oid,k.id,pa)).join(""):(editMode?"":`<div class="empty-state" style="padding:1rem;font-size:12px;">Nenhum PA cadastrado neste KR.</div>`)}
+    ${editMode?`<button class="btn btn-teal" type="button" style="margin-top:8px;" onclick="addPa('${oid}','${k.id}')">+ Adicionar PA</button>`:""}
+  </div>`;
+}
+
+function renderPaRow(oid,kid,pa){
+  const hasProg = pa.prog!=null;
+  const cfg = hasProg ? (ST[pa.st]||ST.on_track) : NO_DATA;
+  return `
+  <div class="pa-row">
+    <div class="pa-top">
+      <span class="pa-dot" style="background:${cfg.c};"></span>
+      ${editMode
+        ?`<input type="text" value="${esc(pa.name)}" onchange="updatePaField('${oid}','${kid}','${pa.id}','name',this.value)" style="flex:1;min-width:120px;" aria-label="Nome do PA">`
+        :`<span class="pa-name">${esc(pa.name)}</span>`
+      }
+      ${editMode
+        ?`<select onchange="updatePaField('${oid}','${kid}','${pa.id}','st',this.value)" aria-label="Status do PA">
+            <option value="on_track"${pa.st==="on_track"?" selected":""}>No Prazo</option>
+            <option value="at_risk"${pa.st==="at_risk"?" selected":""}>Em Risco</option>
+            <option value="behind"${pa.st==="behind"?" selected":""}>Atrasado</option>
+          </select>
+          <input type="text" value="${esc(pa.owner)}" placeholder="Responsável" onchange="updatePaField('${oid}','${kid}','${pa.id}','owner',this.value)" style="width:90px;" aria-label="Responsável">
+          <button class="btn btn-danger" type="button" onclick="deletePa('${oid}','${kid}','${pa.id}')" aria-label="Excluir PA">✕</button>`
+        :`<span class="badge${hasProg?"":" no-data"}" style="background:${cfg.bg};color:${cfg.d}">${cfg.label}</span>
+          <span class="pa-owner">${esc(pa.owner)}</span>`
+      }
+    </div>
+    <div class="pa-bottom">
+      <div class="pbar-wrap f1" style="height:6px;"><div class="pbar-fill${hasProg?"":" no-data"}" style="width:${hasProg?pa.prog+"%":"100%"};background:${hasProg?scColor(pa.prog):""};height:100%;"></div></div>
+      ${editMode?`<input type="range" min="0" max="100" step="1" value="${pa.prog??0}" oninput="updatePaField('${oid}','${kid}','${pa.id}','prog',+this.value);this.nextElementSibling.textContent=this.value+'%'" style="width:80px;" aria-label="Progresso do PA">`:""}
+      <span style="font-size:12px;font-weight:500;color:${hasProg?scColor(pa.prog):C.grey};min-width:34px;text-align:right;">${hasProg?pa.prog+"%":"—"}</span>
+    </div>
+  </div>`;
+}
+
+// Planning mutations — todas operam sobre o trimestre ativo
+function toggleEdit(){editMode=!editMode;renderPlanning();renderHeader();}
+function addOkr(){activeOkrs().push({id:uid(),obj:"Novo Objetivo",krs:[]});save();renderPlanning();renderHeader();}
+function deleteOkr(id){
+  const q=activeQ(); q.okrs=q.okrs.filter(o=>o.id!==id);
+  save();renderPlanning();renderHeader();
+}
+function updateOkrObj(oid,v){const o=activeOkrs().find(x=>x.id===oid);if(o)o.obj=v;save();}
+function addKr(oid){
+  const o=activeOkrs().find(x=>x.id===oid);
+  if(o)o.krs.push({id:uid(),name:"Novo Key Result",tgt:100,cur:0,fmt:"number",inv:false,pas:[]});
+  save();renderPlanning();renderHeader();
+}
+function deleteKr(oid,kid){const o=activeOkrs().find(x=>x.id===oid);if(o)o.krs=o.krs.filter(k=>k.id!==kid);save();renderPlanning();renderHeader();}
+function updateKrField(oid,kid,field,val){
+  const o=activeOkrs().find(x=>x.id===oid);if(!o)return;
+  const k=o.krs.find(x=>x.id===kid);if(!k)return;
+  k[field]=val;
+  if(field==="cur"||field==="tgt"||field==="inv") delete k.undefined;
+  save();if(field!=="name")renderPlanning();renderHeader();
+}
+function addPa(oid,kid){
+  const o=activeOkrs().find(x=>x.id===oid);if(!o)return;
+  const k=o.krs.find(x=>x.id===kid);
+  if(k)k.pas.push({id:uid(),name:"Nova ação",prog:0,owner:"",st:"on_track",meta:null,res:null});
+  save();renderPlanning();renderHeader();
+}
+function deletePa(oid,kid,pid){
+  const o=activeOkrs().find(x=>x.id===oid);if(!o)return;
+  const k=o.krs.find(x=>x.id===kid);
+  if(k)k.pas=k.pas.filter(p=>p.id!==pid);
+  save();renderPlanning();renderHeader();
+}
+function updatePaField(oid,kid,pid,field,val){
+  const o=activeOkrs().find(x=>x.id===oid);if(!o)return;
+  const k=o.krs.find(x=>x.id===kid);if(!k)return;
+  const p=k.pas.find(x=>x.id===pid);if(!p)return;
+  p[field]=val;
+  // Quando o progresso é editado, atualiza o status automaticamente (se não estiver definido manualmente)
+  if(field==="prog"){
+    p.st=paStatus(val)||"on_track";
+  }
+  save();
+  if(field==="prog"){renderHeader();}
+  if(field==="st"||field==="owner")renderPlanning();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════════════
+function renderKpis(){
+  const el=document.getElementById("tab-kpis");
+  const kpis=activeKpis();
+  const months=QUARTER_MONTHS[state.quarter]||["M1","M2","M3"];
+
+  el.innerHTML=`
+  <div class="flex jb ac mb14 wrap gap8">
+    <div class="sec-hdr" style="margin:0">Indicadores-chave de Desempenho — ${state.quarter}</div>
+    <button class="btn btn-blue" type="button" onclick="addKpi()">+ Novo KPI</button>
+  </div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+  `;
+
+  const grid=document.getElementById("kpi-grid");
+  if(!kpis.length){
+    grid.innerHTML=`<div class="empty-state">Nenhum KPI cadastrado em ${state.quarter}.</div>`;
+    return;
+  }
+  kpis.forEach(k=>{
+    const hasTarget = k.tgt!=null && k.tgt!==0;
+    const p = hasTarget ? getPct(k.val,k.tgt,k.inv) : 0;
+    const div=document.createElement("div");
+    div.className="card kpi-card";
+    div.id="kpi-"+k.id;
+    div.innerHTML=`
+      <div class="flex jb ac mb8">
+        <span class="kpi-cat">${esc(k.cat)}</span>
+        <div class="flex gap8">
+          <button class="btn" type="button" onclick="toggleKpiEdit('${k.id}')">Editar</button>
+          <button class="btn btn-danger" type="button" onclick="deleteKpi('${k.id}')" aria-label="Excluir KPI">✕</button>
+        </div>
+      </div>
+      <div id="kpi-view-${k.id}">
+        <div class="kpi-name">${esc(k.name)}</div>
+        <div class="kpi-full">${esc(k.full)}</div>
+        <div class="kpi-val-row">
+          <span class="kpi-val" style="color:${hasTarget?scColor(p):C.grey}">${fmtVal(k.val,k.fmt)}</span>
+          <span class="kpi-of">${hasTarget?`de ${fmtVal(k.tgt,k.fmt)}`:`<span class="no-data-note">meta a definir</span>`}</span>
+        </div>
+        <div class="kpi-pbar-row">
+          <div class="pbar-wrap f1" style="height:7px;"><div class="pbar-fill${hasTarget?"":" no-data"}" style="width:${hasTarget?p+"%":"100%"};background:${hasTarget?scColor(p):""};height:100%;"></div></div>
+          <span style="font-size:12px;font-weight:500;color:${hasTarget?scColor(p):C.grey};min-width:34px;text-align:right;">${hasTarget?p+"%":"—"}</span>
+        </div>
+      </div>
+      <div id="kpi-edit-${k.id}" style="display:none;margin-bottom:10px;">
+        <div class="flex gap8 wrap" style="margin-bottom:8px;">
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Nome</div>
+            <input type="text" value="${esc(k.name)}" onchange="updateKpi('${k.id}','name',this.value)" style="width:100%" aria-label="Nome do KPI">
+          </div>
+          <div style="flex:1;min-width:100px;">
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Descrição</div>
+            <input type="text" value="${esc(k.full)}" onchange="updateKpi('${k.id}','full',this.value)" style="width:100%" aria-label="Descrição do KPI">
+          </div>
+        </div>
+        <div class="flex gap8 wrap" style="margin-bottom:8px;align-items:flex-end;">
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Valor Atual</div>
+            <input type="number" value="${k.val??0}" onchange="updateKpi('${k.id}','val',+this.value)" style="width:100px;" aria-label="Valor atual">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Meta</div>
+            <input type="number" value="${k.tgt??0}" onchange="updateKpi('${k.id}','tgt',+this.value)" style="width:100px;" aria-label="Meta">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Formato</div>
+            <select onchange="updateKpi('${k.id}','fmt',this.value)" aria-label="Formato">
+              <option value="number"${k.fmt==="number"?" selected":""}>Número</option>
+              <option value="currency"${k.fmt==="currency"?" selected":""}>Moeda</option>
+              <option value="percent"${k.fmt==="percent"?" selected":""}>%</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--txtSec);margin-bottom:2px;">Categoria</div>
+            <input type="text" value="${esc(k.cat)}" onchange="updateKpi('${k.id}','cat',this.value)" style="width:120px;" aria-label="Categoria">
+          </div>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txtSec);cursor:pointer;">
+            <input type="checkbox" ${k.inv?"checked":""} onchange="updateKpi('${k.id}','inv',this.checked)">
+            Inverso
+          </label>
+        </div>
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="spark-${k.id}" role="img" aria-label="Tendência ${esc(k.name)}"></canvas>
+      </div>
+      <div class="spark-labels"><span>${months[0]}</span><span>${months[months.length-1]}</span></div>
+    `;
+    grid.appendChild(div);
+
+    // Draw sparkline
+    requestAnimationFrame(()=>{
+      const ctx=document.getElementById("spark-"+k.id);
+      if(!ctx)return;
+      if(sparkCharts[k.id]){try{sparkCharts[k.id].destroy();}catch(e){}}
+      const color = hasTarget ? scColor(p) : C.grey;
+      sparkCharts[k.id]=new Chart(ctx,{
+        type:"line",
+        data:{
+          labels:months,
+          datasets:[{data:k.trend||[0,0,0],borderColor:color,borderWidth:2,pointRadius:0,tension:0.3,fill:false}]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{enabled:false}},
+          scales:{x:{display:false},y:{display:false}}
+        }
+      });
+    });
+  });
+}
+
+function toggleKpiEdit(id){
+  const view=document.getElementById("kpi-view-"+id);
+  const edit=document.getElementById("kpi-edit-"+id);
+  const isOpen=edit.style.display==="none";
+  edit.style.display=isOpen?"block":"none";
+  view.style.display=isOpen?"none":"block";
+}
+function updateKpi(id,field,val){
+  const k=activeKpis().find(x=>x.id===id);
+  if(k){k[field]=val;save();renderHeader();}
+}
+function addKpi(){
+  activeKpis().push({id:uid(),name:"Novo KPI",full:"",val:0,tgt:100,fmt:"number",cat:"Outros",inv:false,trend:[0,0,0],tgtAnnual:null});
+  save();renderKpis();renderHeader();
+}
+function deleteKpi(id){
+  if(sparkCharts[id]){try{sparkCharts[id].destroy();}catch(e){} delete sparkCharts[id];}
+  const q=activeQ(); q.kpis=q.kpis.filter(k=>k.id!==id);
+  save();renderKpis();renderHeader();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+function esc(s){
+  if(s==null)return"";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll(".tab-btn").forEach(b=>{
+  b.addEventListener("click",()=>switchTab(b.dataset.tab));
+});
+
+render();
+</script>
+</body>
+</html>
